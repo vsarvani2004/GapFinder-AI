@@ -52,41 +52,6 @@ supabase/schema.sql               Tables, indexes, RLS, vector RPC, private buck
 .env.example                     Required configuration names
 ```
 
-## Setup
-
-### 1. Install and configure
-
-```bash
-npm install
-Copy-Item .env.example .env.local
-```
-
-Get the Supabase URL and anon/publishable key from **Supabase → Project Settings → API**. Get the service-role key from the same page; keep it only in `.env.local` and Vercel server environment variables. Get `GROQ_API_KEY` from the Groq console. Get an embedding key from OpenAI Platform or another provider that accepts the OpenAI embeddings request shape and returns 1,536 dimensions. Set the endpoint and model accordingly.
-
-Use Node.js 22.13 or newer (PDF.js 6 requirement). In PowerShell, use `npm.cmd` if the local script execution policy blocks `npm.ps1`.
-
-The Supabase anon key is public configuration; the service-role key, Groq key and embedding key are secrets. Never prefix secret keys with `NEXT_PUBLIC_`.
-
-### 2. Set up Supabase
-
-1. Create a Supabase project.
-2. In **SQL Editor**, run all of `supabase/schema.sql` as the project owner. It enables pgvector, creates tables and RLS policies, and creates the private `study-materials` bucket. For an existing installation, also run `supabase/migrations/20261117_upload_processing_error.sql` to add the persisted upload failure message column.
-3. In **Authentication → Providers → Email**, enable email/password. For a quick assignment demo, turn off email confirmation; otherwise users must confirm registration from email before signing in.
-4. Configure every variable listed in `.env.example` in `.env.local`. Provider model IDs and the Storage bucket have documented defaults, but keeping them explicit makes local and Vercel configuration consistent.
-
-No shared demo credentials are embedded. Register a new account in the app. Each account sees only its own rows and uploads. Do not use the service-role key in browser code.
-
-### 3. Run locally
-
-```bash
-npm.cmd run dev
-npm.cmd run lint
-npx.cmd tsc --noEmit
-npm.cmd run build
-```
-
-Open `http://localhost:3000`. Without external keys, the sign-in screen still loads; API calls explain which setup is missing. Full upload, topic mapping, quiz, embedding, grading and assistant flows require the external services above.
-
 ## Deployment
 
 ### GitHub
@@ -112,10 +77,4 @@ Import the pushed GitHub repository into Vercel, select the Next.js framework pr
 
 - Image-only scanned pages need OCR, which is not included. Files producing more than 64 chunks must be split into smaller documents.
 - Upload processing is synchronous. Failures persist `failed` plus a processing error; stuck processing rows are marked failed after ten minutes. Retry checks the existing Storage object and reuses the same material record; it asks for the original file only when that object is missing.
-- Retrieval uses a fixed 0.25 cosine threshold and 1,536-dimensional embeddings. Keep the configured model and SQL vector dimension aligned.
-- AI feature behavior depends on live provider keys, model access, Supabase configuration and network availability. No generated demo statistics are presented as real student data.
 - Revision duration is a per-task estimate capped by the time selector; tasks are generated from evaluated topic attempts.
-
-## Data and security
-
-Application tables enable RLS and enforce `auth.uid() = user_id`. API data reads/writes use the signed-in user's JWT. The private service-role key is used only for Storage operations after authenticated ownership checks. Auth access tokens are stored in an HTTP-only, SameSite=Lax cookie. Configure HTTPS in production; the cookie is marked Secure in production.
